@@ -1,0 +1,13 @@
+*.o
+*.elf
+PARAM.SFO
+/EBOOT.PBP
+logs/
+backrooms_*.log
+__pycache__/
+*.pyc
+.DS_Store
+dist/BACKROOMS3D.backup.*
+source_assets/backups/
+release/
+tools/docker-config/buildx/
