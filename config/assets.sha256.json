@@ -1,0 +1,21 @@
+{
+  "assets/ICON0.PNG": "42bbd75ef8f75604565e82b73215ef642225b941b153ce82de4106bd09885364",
+  "assets/PIC1.PNG": "5f77e04594642130192eb7bca7befa375919d709ce2ee5934cf6420f5300aece",
+  "assets/ambient_level0.raw": "ef07a90e23f788ce60fe7e28acf582f20f1cd0951a67b550b5ed8b995bd95cb8",
+  "assets/ambient_poolrooms.raw": "418f27b86a103870a4002a3c10990743f2867fbb72b13fb0fd59af20be441ee6",
+  "assets/chase.raw": "de950b6b3e7046ecb0587743076d030ac26f849949cd3022a24e790f3c89cf1f",
+  "src/generated/nextbot_sprite.h": "d9646997a70e8e03a622d18dd0b3e1104b4e0b62c4916dd59b4d9be2bfb0e1c5",
+  "src/generated/pools_ceiling.h": "46a18cc56937cb7499bd8de9a9f1d60a6e5cebe5eaf05446ad274f65c3e77b70",
+  "src/generated/pools_damp_wall.h": "17b6e3adb299ffc1c82630a1cd80731e05ac501f7b78fd93cf7410618b5d1941",
+  "src/generated/pools_edge.h": "9bf4492d703992abb2356f2a882a9020b9765221f56ff2a479c65feeac6b1e13",
+  "src/generated/pools_floor.h": "7d907043e1c6a1076f18d8c48e0d1e7906bcb14303c13c67d1e75b59aca08266",
+  "src/generated/pools_light.h": "f700bf474c86d36cd07f6ff41fdc9d6387cf78a1b3135056ce2b9aa7c8bd0064",
+  "src/generated/pools_wall.h": "0a592bbbb94bff858fd845a5f601121d64d48564bda0883ddf6094d0307b77b8",
+  "src/generated/pools_water.h": "3b53859e6d3baf208ff4698fa14fb06e9dd037630cca636ceb75205091fb545b",
+  "src/generated/texture_carpet.h": "0480459e1aa66b7c075ef04aac263fd31d9775bea48425ff00dcf4865e0b2a24",
+  "src/generated/texture_ceiling.h": "f5eddc0ddf73e087636c79dcfd2943fdddbaaf610cedc215863435d2f08d3c02",
+  "src/generated/texture_dirty_wall.h": "1c2529c066c08076c10eb4ed7f8aeb271458db909a4e96e015a1df3e06b8b08e",
+  "src/generated/texture_door.h": "01483f6a7a77527407c7de428ef2337282bb11d75ee6b01aab615d8f0d9584ef",
+  "src/generated/texture_light.h": "006b15f862d1aff6ad621aa1dbae91f0ed23c31a00f0f8dddf7fd1421afe421c",
+  "src/generated/texture_wall.h": "8c87ecf1baedfd44c33e89475413876c285c4fe69ea18ac494ba88a55d00c2fa"
+}

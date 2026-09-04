@@ -1,4 +1,10 @@
 *.o
+*.d
+.env
+backups/
+settings.ini*
+backrooms.log
+backrooms.previous.log
 *.elf
 PARAM.SFO
 /EBOOT.PBP
@@ -8,6 +14,5 @@ __pycache__/
 *.pyc
 .DS_Store
 dist/BACKROOMS3D.backup.*
-source_assets/backups/
 release/
 tools/docker-config/buildx/

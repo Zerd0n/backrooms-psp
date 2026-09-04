@@ -1,0 +1,24 @@
+[2026-09-04 23:05:32] Backrooms PSP / rewrite 2.0 starting
+[2026-09-04 23:05:32] Geometry: level=0 vertices=7644 bytes=183456
+[2026-09-04 23:05:32] Audio: 3 preserved PCM loops, 44100 Hz stereo output
+[2026-09-04 23:05:33] SMOKE screenshot=smoke-0090.ppm fps=59.9
+[2026-09-04 23:05:34] Screen 0 -> 1; level 0; relays 0
+[2026-09-04 23:05:34] Geometry: level=0 vertices=7644 bytes=183456
+[2026-09-04 23:05:35] SMOKE screenshot=smoke-0210.ppm fps=60.0
+[2026-09-04 23:05:37] SMOKE screenshot=smoke-0330.ppm fps=60.0
+[2026-09-04 23:05:40] SMOKE screenshot=smoke-0450.ppm fps=60.0
+[2026-09-04 23:05:40] Screen 1 -> 2; level 0; relays 0
+[2026-09-04 23:05:42] SMOKE screenshot=smoke-0570.ppm fps=60.0
+[2026-09-04 23:05:42] Screen 2 -> 3; level 0; relays 0
+[2026-09-04 23:05:44] SMOKE screenshot=smoke-0690.ppm fps=60.0
+[2026-09-04 23:05:44] Screen 3 -> 1; level 1; relays 0
+[2026-09-04 23:05:44] Geometry: level=1 vertices=8028 bytes=192672
+[2026-09-04 23:05:46] SMOKE screenshot=smoke-0810.ppm fps=60.0
+[2026-09-04 23:05:48] SMOKE screenshot=smoke-0930.ppm fps=60.0
+[2026-09-04 23:05:50] SMOKE screenshot=smoke-1050.ppm fps=60.0
+[2026-09-04 23:05:50] Screen 1 -> 4; level 1; relays 0
+[2026-09-04 23:05:52] SMOKE screenshot=smoke-1170.ppm fps=60.0
+[2026-09-04 23:05:52] Screen 4 -> 6; level 1; relays 0
+[2026-09-04 23:05:54] SMOKE screenshot=smoke-1290.ppm fps=60.0
+[2026-09-04 23:05:54] Settings saved; checkpoint=0
+[2026-09-04 23:05:54] Clean shutdown
