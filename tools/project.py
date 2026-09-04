@@ -137,6 +137,7 @@ def package():
         for name in AUDIO:
             shutil.copy2(ROOT/'assets'/name, stage/'assets'/name)
         shutil.copy2(ROOT/'README_RU.txt', stage/'README_RU.txt')
+        shutil.copy2(ROOT/'README_EN.txt', stage/'README_EN.txt')
         hashes = {str(p.relative_to(stage)): digest(p) for p in sorted(stage.rglob('*')) if p.is_file()}
         (stage/'manifest.json').write_text(json.dumps(hashes, indent=2)+'\n')
         backup = dist/f'BACKROOMS3D.backup.{stamp()}'
