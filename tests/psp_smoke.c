@@ -4,10 +4,11 @@
 #include <pspdisplay.h>
 #include <pspkernel.h>
 #include <pspgu.h>
+#include <pspge.h>
 #include <stdio.h>
 #include <string.h>
 
-static unsigned transfer_list[4096] __attribute__((aligned(16)));
+static unsigned transfer_list[4096] __attribute__((aligned(64)));
 static unsigned readback[480*272] __attribute__((aligned(64)));
 
 static void capture(int frame,float fps) {
@@ -19,6 +20,7 @@ static void capture(int frame,float fps) {
     fprintf(f,"P6\n480 272\n255\n");
     /* A GE transfer forces PPSSPP to read back the rendered target. Direct
        CPU reads of VRAM can otherwise observe a stale emulated RAM copy. */
+    sceKernelDcacheWritebackInvalidateRange(transfer_list,sizeof(transfer_list));
     sceGuStart(GU_DIRECT,transfer_list);
     sceGuCopyImage(GU_PSM_8888,0,0,480,272,stride,address,0,0,480,readback);
     sceGuTexSync();sceGuFinish();sceGuSync(0,0);
@@ -49,6 +51,20 @@ void smoke_before(Game *g,int frame) {
     if(frame==1200)g->screen=SCREEN_WIN;
 }
 bool smoke_after(int frame,float fps) {
+    /* Exercise cache eviction and check actual GE/LCD state, not just how
+       PPSSPP presents a texture on the host GPU. Firmware command registers:
+       0xD2 = framebuffer format, 0x9D = framebuffer width. */
+    sceKernelDcacheWritebackAll();
+    void *address=NULL;int stride=0,format=0;
+    int result=sceDisplayGetFrameBuf(&address,&stride,&format,PSP_DISPLAY_SETBUF_IMMEDIATE);
+    unsigned ge_format=sceGeGetCmd(0xd2),ge_width=sceGeGetCmd(0x9d);
+    if(result<0 || !address || stride!=512 || format!=PSP_DISPLAY_PIXEL_FORMAT_8888 ||
+       (ge_format&3)!=GU_PSM_8888 || (ge_width&0x7ff)!=512) {
+        log_write("SMOKE FAIL video frame=%d result=%d LCD=%p/%d/%d GE=%08x/%08x",
+                  frame,result,address,stride,format,ge_format,ge_width);
+        return false;
+    }
+    if(frame%120==90)log_write("SMOKE video PASS frame=%d LCD=8888/512 GE=8888/512",frame);
     if(frame%120==90)capture(frame,fps);
     return frame<1320;
 }

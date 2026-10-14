@@ -10,7 +10,7 @@
 static FILE *log_file;
 void log_open(void) {
     remove("backrooms.previous.log");rename("backrooms.log","backrooms.previous.log");
-    log_file=fopen("backrooms.log","w");log_write("Backrooms PSP / rewrite 2.0 starting");
+    log_file=fopen("backrooms.log","w");log_write("Backrooms PSP / rewrite 2.0.1 starting");
 }
 void log_write(const char *format,...) {
     char message[512],stamp[40];time_t now=time(NULL);struct tm *t=localtime(&now);

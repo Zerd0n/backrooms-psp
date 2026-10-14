@@ -1,0 +1,37 @@
+[2026-10-14 14:08:14] Backrooms PSP / rewrite 2.0.1 starting
+[2026-10-14 14:08:14] Using default settings
+[2026-10-14 14:08:14] Video 2.0.1: 480x272 ABGR8888 stride=512; GE list=0x88d1b80 bytes=1048576 (64-byte isolated)
+[2026-10-14 14:08:14] Geometry: level=0 vertices=7644 bytes=183456
+[2026-10-14 14:08:14] Audio: 3 preserved PCM loops, 44100 Hz stereo output
+[2026-10-14 14:08:15] SMOKE video PASS frame=90 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:15] SMOKE screenshot=smoke-0090.ppm fps=59.9
+[2026-10-14 14:08:16] Screen 0 -> 1; level 0; relays 0
+[2026-10-14 14:08:16] Geometry: level=0 vertices=7644 bytes=183456
+[2026-10-14 14:08:17] SMOKE video PASS frame=210 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:17] SMOKE screenshot=smoke-0210.ppm fps=60.0
+[2026-10-14 14:08:19] SMOKE video PASS frame=330 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:20] SMOKE screenshot=smoke-0330.ppm fps=60.0
+[2026-10-14 14:08:22] SMOKE video PASS frame=450 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:22] SMOKE screenshot=smoke-0450.ppm fps=60.0
+[2026-10-14 14:08:22] Screen 1 -> 2; level 0; relays 0
+[2026-10-14 14:08:24] SMOKE video PASS frame=570 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:24] SMOKE screenshot=smoke-0570.ppm fps=60.0
+[2026-10-14 14:08:24] Screen 2 -> 3; level 0; relays 0
+[2026-10-14 14:08:26] SMOKE video PASS frame=690 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:26] SMOKE screenshot=smoke-0690.ppm fps=60.0
+[2026-10-14 14:08:26] Screen 3 -> 1; level 1; relays 0
+[2026-10-14 14:08:26] Geometry: level=1 vertices=8028 bytes=192672
+[2026-10-14 14:08:28] SMOKE video PASS frame=810 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:28] SMOKE screenshot=smoke-0810.ppm fps=60.0
+[2026-10-14 14:08:30] SMOKE video PASS frame=930 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:30] SMOKE screenshot=smoke-0930.ppm fps=60.0
+[2026-10-14 14:08:32] SMOKE video PASS frame=1050 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:32] SMOKE screenshot=smoke-1050.ppm fps=60.0
+[2026-10-14 14:08:32] Screen 1 -> 4; level 1; relays 0
+[2026-10-14 14:08:34] SMOKE video PASS frame=1170 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:34] SMOKE screenshot=smoke-1170.ppm fps=60.0
+[2026-10-14 14:08:34] Screen 4 -> 6; level 1; relays 0
+[2026-10-14 14:08:36] SMOKE video PASS frame=1290 LCD=8888/512 GE=8888/512
+[2026-10-14 14:08:36] SMOKE screenshot=smoke-1290.ppm fps=60.0
+[2026-10-14 14:08:36] Settings saved; checkpoint=0
+[2026-10-14 14:08:36] Clean shutdown

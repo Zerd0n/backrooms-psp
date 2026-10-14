@@ -12,9 +12,15 @@
 #define CHUNK_SIZE 8
 typedef struct { float u,v; unsigned color; float x,y,z; } Vertex;
 typedef struct { int start,count; } Batch;
-static Vertex geometry[MAX_VERTICES] __attribute__((aligned(16)));
+static Vertex geometry[MAX_VERTICES] __attribute__((aligned(64)));
 static Batch batches[CHUNKS][CHUNKS][MAT_BOT];
-static unsigned display_list[262144] __attribute__((aligned(16)));
+/* sceGuStart writes through an UNCACHED alias. PSP D-cache lines are 64 bytes:
+   sharing either edge with cached variables lets their writeback overwrite GE
+   commands (including the framebuffer format). 16-byte GE alignment alone is
+   not enough. Keep the entire allocation isolated, not just its first word. */
+static unsigned display_list[262144] __attribute__((aligned(64)));
+typedef char DisplayListWholeCacheLines[(sizeof(display_list)%64==0)?1:-1];
+static void *draw_buffer;
 static int used;
 static bool overflow,initialized;
 
@@ -78,6 +84,10 @@ bool renderer_world(const Game *g) {
 bool renderer_init(void) {
     if(!assets_init())return false;
     if(sceGuInit()<0){assets_shutdown();return false;}
+    /* Discard any cached alias left by BSS initialization before GU starts
+       writing uncached. Never flush a stale cached alias over an active list. */
+    sceKernelDcacheWritebackInvalidateRange(display_list,sizeof(display_list));
+    draw_buffer=(void*)0;
     initialized=true;sceGuStart(GU_DIRECT,display_list);
     /* 1,392,640 bytes: two RGBA buffers plus 16-bit depth, within 2 MiB VRAM. */
     sceGuDrawBuffer(GU_PSM_8888,(void*)0,512);
@@ -88,6 +98,8 @@ bool renderer_init(void) {
     sceGuScissor(0,0,480,272);sceGuEnable(GU_SCISSOR_TEST);sceGuEnable(GU_CLIP_PLANES);
     sceGuDisable(GU_CULL_FACE);sceGuShadeModel(GU_SMOOTH);
     sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();sceGuDisplay(GU_TRUE);
+    log_write("Video 2.0.1: 480x272 ABGR8888 stride=512; GE list=%p bytes=%u (64-byte isolated)",
+              (void*)display_list,(unsigned)sizeof(display_list));
     return true;
 }
 static void draw_dynamic(const Game *g) {
@@ -115,6 +127,9 @@ static void draw_dynamic(const Game *g) {
 }
 void renderer_draw(const Game *g,float fps,bool audio_available) {
     sceGuStart(GU_DIRECT,display_list);
+    /* Reassert format as well as address/stride: sceGuStart restores only the
+       latter two. LCD scanout and GE drawing must both remain 32-bit. */
+    sceGuDrawBuffer(GU_PSM_8888,draw_buffer,512);
     unsigned fog=g->world.level?0xff28281e:0xff22292e;
     sceGuClearColor(fog);sceGuClearDepth(0);sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
     sceGuEnable(GU_DEPTH_TEST);sceGuDepthMask(GU_FALSE);sceGuEnable(GU_TEXTURE_2D);sceGuEnable(GU_FOG);
@@ -139,6 +154,6 @@ void renderer_draw(const Game *g,float fps,bool audio_available) {
         }
     }
     draw_dynamic(g);ui_draw(g,fps,audio_available);
-    sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();sceGuSwapBuffers();
+    sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();draw_buffer=sceGuSwapBuffers();
 }
 void renderer_shutdown(void) { if(initialized)sceGuTerm();initialized=false;assets_shutdown(); }

@@ -2,6 +2,10 @@
 
 [English README](README_EN.md)
 
+Обновление 2.0.1 исправляет конфликт CPU-кэша с командами GPU, который мог
+повреждать формат кадра на настоящей PSP. Подробности и порядок проверки
+на консоли: [исправление изображения](docs/HARDWARE_DISPLAY_FIX.md).
+
 Небольшая хоррор-игра для PSP, действие которой начинается в Level 0 и продолжается в Poolrooms. Игроку нужно включить три реле, открыть выход и не попасться преследователю.
 
 Эта версия написана заново на C99 для PSPSDK. Прежний код больше не используется. Текстуры, оформление меню PSP, звук и спрайт некстбота сохранены, но сама игра теперь работает на новом 3D-рендерере и новой логике уровней.
@@ -14,7 +18,7 @@
 
 ## Запуск
 
-Готовая версия лежит в [dist/BACKROOMS3D](/Users/zerdonov/Documents/Backrooms_PSP/dist/BACKROOMS3D). Команда `python3 tools/project.py build` также создаёт `release/Backrooms-PSP-Rebuilt-v2.0.zip` для распространения.
+Готовая версия лежит в [dist/BACKROOMS3D](dist/BACKROOMS3D). Команда `python3 tools/project.py build` также создаёт `release/Backrooms-PSP-Rebuilt-v2.0.1.zip` для распространения.
 
 В PPSSPP откройте `BACKROOMS3D/EBOOT.PBP`. Для PSP скопируйте всю папку `BACKROOMS3D` в `PSP/GAME/` на карту памяти. Папка `assets` должна остаться рядом с `EBOOT.PBP`, иначе не будет звука.
 

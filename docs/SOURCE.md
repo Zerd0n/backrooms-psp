@@ -26628,7 +26628,7 @@ static const uint16_t TEXTURE_WALL_MIP3_PIXELS[256] __attribute__((aligned(16)))
 #include <string.h>
 #include <unistd.h>
 
-PSP_MODULE_INFO("Backrooms Rebuilt",0,2,0);
+PSP_MODULE_INFO("Backrooms Rebuilt",0,2,1);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
 PSP_HEAP_SIZE_KB(12*1024);
 static volatile int running=1,resumed=0;
@@ -26989,9 +26989,15 @@ void audio_shutdown(void);
 #define CHUNK_SIZE 8
 typedef struct { float u,v; unsigned color; float x,y,z; } Vertex;
 typedef struct { int start,count; } Batch;
-static Vertex geometry[MAX_VERTICES] __attribute__((aligned(16)));
+static Vertex geometry[MAX_VERTICES] __attribute__((aligned(64)));
 static Batch batches[CHUNKS][CHUNKS][MAT_BOT];
-static unsigned display_list[262144] __attribute__((aligned(16)));
+/* sceGuStart writes through an UNCACHED alias. PSP D-cache lines are 64 bytes:
+   sharing either edge with cached variables lets their writeback overwrite GE
+   commands (including the framebuffer format). 16-byte GE alignment alone is
+   not enough. Keep the entire allocation isolated, not just its first word. */
+static unsigned display_list[262144] __attribute__((aligned(64)));
+typedef char DisplayListWholeCacheLines[(sizeof(display_list)%64==0)?1:-1];
+static void *draw_buffer;
 static int used;
 static bool overflow,initialized;
 
@@ -27055,6 +27061,10 @@ bool renderer_world(const Game *g) {
 bool renderer_init(void) {
     if(!assets_init())return false;
     if(sceGuInit()<0){assets_shutdown();return false;}
+    /* Discard any cached alias left by BSS initialization before GU starts
+       writing uncached. Never flush a stale cached alias over an active list. */
+    sceKernelDcacheWritebackInvalidateRange(display_list,sizeof(display_list));
+    draw_buffer=(void*)0;
     initialized=true;sceGuStart(GU_DIRECT,display_list);
     /* 1,392,640 bytes: two RGBA buffers plus 16-bit depth, within 2 MiB VRAM. */
     sceGuDrawBuffer(GU_PSM_8888,(void*)0,512);
@@ -27065,6 +27075,8 @@ bool renderer_init(void) {
     sceGuScissor(0,0,480,272);sceGuEnable(GU_SCISSOR_TEST);sceGuEnable(GU_CLIP_PLANES);
     sceGuDisable(GU_CULL_FACE);sceGuShadeModel(GU_SMOOTH);
     sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();sceGuDisplay(GU_TRUE);
+    log_write("Video 2.0.1: 480x272 ABGR8888 stride=512; GE list=%p bytes=%u (64-byte isolated)",
+              (void*)display_list,(unsigned)sizeof(display_list));
     return true;
 }
 static void draw_dynamic(const Game *g) {
@@ -27092,6 +27104,9 @@ static void draw_dynamic(const Game *g) {
 }
 void renderer_draw(const Game *g,float fps,bool audio_available) {
     sceGuStart(GU_DIRECT,display_list);
+    /* Reassert format as well as address/stride: sceGuStart restores only the
+       latter two. LCD scanout and GE drawing must both remain 32-bit. */
+    sceGuDrawBuffer(GU_PSM_8888,draw_buffer,512);
     unsigned fog=g->world.level?0xff28281e:0xff22292e;
     sceGuClearColor(fog);sceGuClearDepth(0);sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
     sceGuEnable(GU_DEPTH_TEST);sceGuDepthMask(GU_FALSE);sceGuEnable(GU_TEXTURE_2D);sceGuEnable(GU_FOG);
@@ -27116,7 +27131,7 @@ void renderer_draw(const Game *g,float fps,bool audio_available) {
         }
     }
     draw_dynamic(g);ui_draw(g,fps,audio_available);
-    sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();sceGuSwapBuffers();
+    sceGuFinish();sceGuSync(0,0);sceDisplayWaitVblankStart();draw_buffer=sceGuSwapBuffers();
 }
 void renderer_shutdown(void) { if(initialized)sceGuTerm();initialized=false;assets_shutdown(); }
 ```
@@ -27136,7 +27151,7 @@ void renderer_shutdown(void) { if(initialized)sceGuTerm();initialized=false;asse
 static FILE *log_file;
 void log_open(void) {
     remove("backrooms.previous.log");rename("backrooms.log","backrooms.previous.log");
-    log_file=fopen("backrooms.log","w");log_write("Backrooms PSP / rewrite 2.0 starting");
+    log_file=fopen("backrooms.log","w");log_write("Backrooms PSP / rewrite 2.0.1 starting");
 }
 void log_write(const char *format,...) {
     char message[512],stamp[40];time_t now=time(NULL);struct tm *t=localtime(&now);
@@ -27208,7 +27223,8 @@ bool settings_save(const Settings *s) {
 #include <string.h>
 
 typedef struct { unsigned color; short x,y,z,pad; } UiVertex;
-static UiVertex vertices[24000] __attribute__((aligned(16)));
+/* Cache writeback must not include neighboring state or uncached GE data. */
+static UiVertex vertices[24000] __attribute__((aligned(64)));
 static int count;
 #define INK 0xffe9ecee
 #define MUTED 0xffa4aaa9
@@ -27410,10 +27426,11 @@ void ui_draw(const Game *game, float fps, bool audio_available);
 #include <pspdisplay.h>
 #include <pspkernel.h>
 #include <pspgu.h>
+#include <pspge.h>
 #include <stdio.h>
 #include <string.h>
 
-static unsigned transfer_list[4096] __attribute__((aligned(16)));
+static unsigned transfer_list[4096] __attribute__((aligned(64)));
 static unsigned readback[480*272] __attribute__((aligned(64)));
 
 static void capture(int frame,float fps) {
@@ -27425,6 +27442,7 @@ static void capture(int frame,float fps) {
     fprintf(f,"P6\n480 272\n255\n");
     /* A GE transfer forces PPSSPP to read back the rendered target. Direct
        CPU reads of VRAM can otherwise observe a stale emulated RAM copy. */
+    sceKernelDcacheWritebackInvalidateRange(transfer_list,sizeof(transfer_list));
     sceGuStart(GU_DIRECT,transfer_list);
     sceGuCopyImage(GU_PSM_8888,0,0,480,272,stride,address,0,0,480,readback);
     sceGuTexSync();sceGuFinish();sceGuSync(0,0);
@@ -27455,6 +27473,20 @@ void smoke_before(Game *g,int frame) {
     if(frame==1200)g->screen=SCREEN_WIN;
 }
 bool smoke_after(int frame,float fps) {
+    /* Exercise cache eviction and check actual GE/LCD state, not just how
+       PPSSPP presents a texture on the host GPU. Firmware command registers:
+       0xD2 = framebuffer format, 0x9D = framebuffer width. */
+    sceKernelDcacheWritebackAll();
+    void *address=NULL;int stride=0,format=0;
+    int result=sceDisplayGetFrameBuf(&address,&stride,&format,PSP_DISPLAY_SETBUF_IMMEDIATE);
+    unsigned ge_format=sceGeGetCmd(0xd2),ge_width=sceGeGetCmd(0x9d);
+    if(result<0 || !address || stride!=512 || format!=PSP_DISPLAY_PIXEL_FORMAT_8888 ||
+       (ge_format&3)!=GU_PSM_8888 || (ge_width&0x7ff)!=512) {
+        log_write("SMOKE FAIL video frame=%d result=%d LCD=%p/%d/%d GE=%08x/%08x",
+                  frame,result,address,stride,format,ge_format,ge_width);
+        return false;
+    }
+    if(frame%120==90)log_write("SMOKE video PASS frame=%d LCD=8888/512 GE=8888/512",frame);
     if(frame%120==90)capture(frame,fps);
     return frame<1320;
 }
@@ -27583,6 +27615,7 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import struct
 import tempfile
 import unittest
 
@@ -27599,6 +27632,7 @@ class ProjectTests(unittest.TestCase):
         (self.root/'config').mkdir();(self.root/'assets').mkdir()
         shutil.copy2(REPO/'EBOOT.PBP',self.root/'EBOOT.PBP')
         shutil.copy2(REPO/'README_RU.txt',self.root/'README_RU.txt')
+        shutil.copy2(REPO/'README_EN.txt',self.root/'README_EN.txt')
         manifest={}
         for name in (*project.AUDIO,'ICON0.PNG','PIC1.PNG'):
             p=self.root/'assets'/name;shutil.copy2(REPO/'assets'/name,p)
@@ -27640,6 +27674,53 @@ class ProjectTests(unittest.TestCase):
         with self.assertRaises(project.ProjectError):project.config()
         (self.root/'.env').write_text('UNKNOWN=1\n')
         with self.assertRaises(project.ProjectError):project.config()
+
+class GpuLayoutTests(unittest.TestCase):
+    """Exercise the linked-ELF check, including the actual v2.0 list address."""
+    def elf(self, *, address=0x088d11c0, size=1048576, omit=None):
+        names = b'\0display_list\0geometry\0vertices\0'
+        symbols = bytearray(16)  # ELF's undefined symbol
+        for name, value, length in (('display_list', address, size),
+                                    ('geometry', 0x089d1900, 576000),
+                                    ('vertices', 0x08a5e340, 288000)):
+            if name != omit:
+                symbols += struct.pack('<IIIBBH', names.index(name.encode()), value,
+                                       length, 1, 0, 1)
+        string_offset = 52+3*40
+        symbol_offset = string_offset+len(names)
+        header = bytearray(52)
+        header[:6] = b'\x7fELF\x01\x01'
+        struct.pack_into('<I', header, 32, 52)
+        struct.pack_into('<HH', header, 46, 40, 3)
+        sections = bytes(40)
+        sections += struct.pack('<10I', 0, 3, 0, 0, string_offset, len(names), 0, 0, 1, 0)
+        sections += struct.pack('<10I', 0, 2, 0, 0, symbol_offset, len(symbols), 1, 0, 4, 16)
+        return header+sections+names+symbols
+
+    def check(self, data):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'game.elf'
+            path.write_bytes(data)
+            project.verify_gpu_layout(path)
+
+    def test_cache_isolated_buffers(self):
+        self.check(self.elf())
+
+    def test_original_v2_address_is_rejected(self):
+        # The shipped ELF placed the list at 0x088d1190, in the same cache line
+        # as initialized/overflow/used at 0x088d1180..0x088d1187.
+        with self.assertRaisesRegex(project.ProjectError, 'display_list shares'):
+            self.check(self.elf(address=0x088d1190))
+
+    def test_partial_last_cache_line_is_rejected(self):
+        with self.assertRaisesRegex(project.ProjectError, 'display_list shares'):
+            self.check(self.elf(size=1048576-4))
+
+    def test_missing_symbols_and_truncated_elf(self):
+        with self.assertRaisesRegex(project.ProjectError, 'Missing GPU symbols'):
+            self.check(self.elf(omit='display_list'))
+        with self.assertRaises(project.ProjectError):
+            self.check(self.elf()[:80])
 
 if __name__=='__main__':unittest.main()
 ```
@@ -27840,6 +27921,54 @@ def verify_pbp(path):
             raise ProjectError(f'PBP menu art does not match preserved {name}.')
     LOG.info('Valid MIPS PSP executable: %s (%d bytes)', path, len(data))
 
+def verify_gpu_layout(path):
+    """Check linked addresses, not source attributes: GU writes uncached memory.
+
+    A cached neighbor must never share a 64-byte cache line with a GE list.
+    Run against the unstripped ELF before packaging the stripped executable.
+    """
+    data = Path(path).read_bytes()
+    def unpack(fmt, offset):
+        if offset < 0 or offset + struct.calcsize(fmt) > len(data):
+            raise ProjectError('Truncated ELF while checking GPU buffer alignment.')
+        return struct.unpack_from(fmt, data, offset)
+    if len(data) < 52 or data[:6] != b'\x7fELF\x01\x01':
+        raise ProjectError('GPU layout check requires a little-endian ELF32 file.')
+    section_offset, = unpack('<I', 32)
+    section_size, section_count = unpack('<HH', 46)
+    if section_size != 40 or not section_count:
+        raise ProjectError('Missing ELF section table for GPU layout check.')
+    sections = [unpack('<10I', section_offset+i*section_size) for i in range(section_count)]
+    buffers = {}
+    required = {'display_list', 'geometry', 'vertices'}
+    optional = {'transfer_list', 'readback'}
+    for section in sections:
+        if section[1] != 2:  # SHT_SYMTAB
+            continue
+        if section[9] != 16 or section[6] >= len(sections) or section[5] % 16:
+            raise ProjectError('Invalid ELF symbol table for GPU layout check.')
+        strings = sections[section[6]]
+        start, length = strings[4], strings[5]
+        if start+length > len(data):
+            raise ProjectError('Truncated ELF string table.')
+        for offset in range(section[4], section[4]+section[5], 16):
+            name_offset, address, size, info, _, index = unpack('<IIIBBH', offset)
+            if not index or info & 15 != 1:  # Defined STT_OBJECT only
+                continue
+            end = data.find(b'\0', start+name_offset, start+length)
+            if name_offset >= length or end < 0:
+                raise ProjectError('Invalid ELF symbol name.')
+            name = data[start+name_offset:end].decode('utf-8', errors='replace')
+            if name in required | optional:
+                if address % 64 or not size or size % 64:
+                    raise ProjectError(f'GPU buffer {name} shares a 64-byte cache line: '
+                                       f'address=0x{address:08x}, size={size}.')
+                buffers[name] = (address, size)
+    if required - buffers.keys():
+        raise ProjectError('Missing GPU symbols: '+', '.join(sorted(required - buffers.keys())))
+    for name, (address, size) in sorted(buffers.items()):
+        LOG.info('GPU cache isolation: %s address=0x%08x size=%d PASS', name, address, size)
+
 def test():
     compiler = shutil.which('clang') or shutil.which('cc')
     if not compiler:
@@ -27869,6 +27998,7 @@ def package():
         for name in AUDIO:
             shutil.copy2(ROOT/'assets'/name, stage/'assets'/name)
         shutil.copy2(ROOT/'README_RU.txt', stage/'README_RU.txt')
+        shutil.copy2(ROOT/'README_EN.txt', stage/'README_EN.txt')
         hashes = {str(p.relative_to(stage)): digest(p) for p in sorted(stage.rglob('*')) if p.is_file()}
         (stage/'manifest.json').write_text(json.dumps(hashes, indent=2)+'\n')
         backup = dist/f'BACKROOMS3D.backup.{stamp()}'
@@ -27880,7 +28010,7 @@ def package():
             if backup.exists(): backup.rename(target)
             raise
     release = ROOT/'release'; release.mkdir(exist_ok=True)
-    archive = release/'Backrooms-PSP-Rebuilt-v2.0.zip'
+    archive = release/'Backrooms-PSP-Rebuilt-v2.0.1.zip'
     temporary = archive.with_suffix('.zip.tmp')
     with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED) as zipped:
         for path in sorted(target.rglob('*')):
@@ -27921,6 +28051,7 @@ def build():
                     delay=2**(attempt+1);LOG.warning('Pull failed; retrying in %d s.', delay);time.sleep(delay)
         run(['docker','run','--rm','--platform',values['BACKROOMS_PLATFORM'],'--network','none',
              '--mount',f'type=bind,source={ROOT},target=/work','-w','/work',image,'make','-j4'])
+    verify_gpu_layout(ROOT/'BACKROOMS3D.elf')
     package(); verify()
     run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_project.py', '-v'])
 

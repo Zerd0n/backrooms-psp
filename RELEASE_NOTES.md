@@ -1,3 +1,38 @@
+# Rebuilt 2.0.1 — 2026-10-14
+
+Display hotfix for the report of wrong colors and two images on a real PSP.
+The v2.0 executable placed the uncached GPU command list in the same CPU
+cache line as mutable variables. A cache writeback could overwrite its
+commands. The list now occupies isolated 64-byte cache lines, its cached
+alias is invalidated before first use, and each frame explicitly sets the
+32-bit framebuffer format and stride. Artwork and gameplay are unchanged.
+
+Validation: PSPDEV build with warnings as errors; core and storage tests under
+ASan/UBSan; eight Python tests; linked-ELF checks for buffer isolation; a
+1320-frame PPSSPP run checking GE/LCD format and stride on every frame, with
+11 captures and a clean exit. Menu, Level 0 and Poolrooms captures were
+visually inspected. Physical PSP confirmation is still needed.
+
+Install `release/Backrooms-PSP-Rebuilt-v2.0.1.zip`, keep your settings files,
+and restart the game completely. See [hardware check instructions](docs/HARDWARE_DISPLAY_FIX.md).
+
+Исправление по сообщению о неправильных цветах и двух изображениях на PSP.
+В исполняемом файле 2.0 список команд GPU делил строку CPU-кэша с изменяемыми
+переменными. Сброс кэша мог затереть команды. Теперь буферы изолированы по
+64 байта, перед первым использованием списка очищается его кэшированный
+адрес, а 32-битный формат кадра и шаг строки задаются каждый кадр.
+Текстуры и игровой процесс не менялись.
+
+Сборка, тесты логики и сохранений, восемь Python-тестов и проверка размещения
+буферов прошли. В PPSSPP выполнены 1320 кадров с проверкой форматов GPU и
+экрана, сохранены 11 кадров, игра завершилась штатно. Визуально проверены
+меню, Level 0 и Poolrooms. На настоящей PSP исправление ещё нужно подтвердить.
+
+Архив: `release/Backrooms-PSP-Rebuilt-v2.0.1.zip`. После замены полностью
+перезапустите игру, сохранив файлы настроек. Инструкции находятся по ссылке выше.
+
+---
+
 # Rebuilt 2.0 — 2026-09-05
 
 Backrooms PSP получила полноценную новую версию на C99. Старый монолит и прежние карты ушли. В игре остались знакомые текстуры, оформление меню PSP, звук и спрайт некстбота, но рендерер, уровни и игровая логика написаны заново.

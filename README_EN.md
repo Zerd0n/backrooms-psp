@@ -2,6 +2,10 @@
 
 [Русская версия](README.md)
 
+Update 2.0.1 fixes CPU-cache interference with GPU commands that could corrupt
+the framebuffer format on real PSP hardware. See the
+[display fix and hardware checklist](docs/HARDWARE_DISPLAY_FIX.md).
+
 A small PSP horror game set first in Level 0, then in the Poolrooms. You need to power three relays, open the exit, and stay ahead of the pursuing nextbot.
 
 I rewrote this version from scratch in C99 for PSPSDK. The old code is gone. The familiar textures, PSP menu art, chase sound, and nextbot sprite remain, but the game now has a new renderer, level system, and gameplay code.
@@ -14,7 +18,7 @@ The nextbot finds its way through the map and the chase music gets louder as it 
 
 ## Running the game
 
-The ready-to-copy build is in `dist/BACKROOMS3D`. You can also create `release/Backrooms-PSP-Rebuilt-v2.0.zip` with `python3 tools/project.py build`.
+The ready-to-copy build is in `dist/BACKROOMS3D`. You can also create `release/Backrooms-PSP-Rebuilt-v2.0.1.zip` with `python3 tools/project.py build`.
 
 In PPSSPP, open `BACKROOMS3D/EBOOT.PBP`. On a PSP, copy the whole `BACKROOMS3D` folder to `PSP/GAME/` on the memory stick. Keep the `assets` folder next to `EBOOT.PBP` or the game will have no sound.
 

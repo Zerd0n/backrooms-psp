@@ -6,7 +6,8 @@
 #include <string.h>
 
 typedef struct { unsigned color; short x,y,z,pad; } UiVertex;
-static UiVertex vertices[24000] __attribute__((aligned(16)));
+/* Cache writeback must not include neighboring state or uncached GE data. */
+static UiVertex vertices[24000] __attribute__((aligned(64)));
 static int count;
 #define INK 0xffe9ecee
 #define MUTED 0xffa4aaa9

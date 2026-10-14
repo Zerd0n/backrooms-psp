@@ -108,6 +108,54 @@ def verify_pbp(path):
             raise ProjectError(f'PBP menu art does not match preserved {name}.')
     LOG.info('Valid MIPS PSP executable: %s (%d bytes)', path, len(data))
 
+def verify_gpu_layout(path):
+    """Check linked addresses, not source attributes: GU writes uncached memory.
+
+    A cached neighbor must never share a 64-byte cache line with a GE list.
+    Run against the unstripped ELF before packaging the stripped executable.
+    """
+    data = Path(path).read_bytes()
+    def unpack(fmt, offset):
+        if offset < 0 or offset + struct.calcsize(fmt) > len(data):
+            raise ProjectError('Truncated ELF while checking GPU buffer alignment.')
+        return struct.unpack_from(fmt, data, offset)
+    if len(data) < 52 or data[:6] != b'\x7fELF\x01\x01':
+        raise ProjectError('GPU layout check requires a little-endian ELF32 file.')
+    section_offset, = unpack('<I', 32)
+    section_size, section_count = unpack('<HH', 46)
+    if section_size != 40 or not section_count:
+        raise ProjectError('Missing ELF section table for GPU layout check.')
+    sections = [unpack('<10I', section_offset+i*section_size) for i in range(section_count)]
+    buffers = {}
+    required = {'display_list', 'geometry', 'vertices'}
+    optional = {'transfer_list', 'readback'}
+    for section in sections:
+        if section[1] != 2:  # SHT_SYMTAB
+            continue
+        if section[9] != 16 or section[6] >= len(sections) or section[5] % 16:
+            raise ProjectError('Invalid ELF symbol table for GPU layout check.')
+        strings = sections[section[6]]
+        start, length = strings[4], strings[5]
+        if start+length > len(data):
+            raise ProjectError('Truncated ELF string table.')
+        for offset in range(section[4], section[4]+section[5], 16):
+            name_offset, address, size, info, _, index = unpack('<IIIBBH', offset)
+            if not index or info & 15 != 1:  # Defined STT_OBJECT only
+                continue
+            end = data.find(b'\0', start+name_offset, start+length)
+            if name_offset >= length or end < 0:
+                raise ProjectError('Invalid ELF symbol name.')
+            name = data[start+name_offset:end].decode('utf-8', errors='replace')
+            if name in required | optional:
+                if address % 64 or not size or size % 64:
+                    raise ProjectError(f'GPU buffer {name} shares a 64-byte cache line: '
+                                       f'address=0x{address:08x}, size={size}.')
+                buffers[name] = (address, size)
+    if required - buffers.keys():
+        raise ProjectError('Missing GPU symbols: '+', '.join(sorted(required - buffers.keys())))
+    for name, (address, size) in sorted(buffers.items()):
+        LOG.info('GPU cache isolation: %s address=0x%08x size=%d PASS', name, address, size)
+
 def test():
     compiler = shutil.which('clang') or shutil.which('cc')
     if not compiler:
@@ -149,7 +197,7 @@ def package():
             if backup.exists(): backup.rename(target)
             raise
     release = ROOT/'release'; release.mkdir(exist_ok=True)
-    archive = release/'Backrooms-PSP-Rebuilt-v2.0.zip'
+    archive = release/'Backrooms-PSP-Rebuilt-v2.0.1.zip'
     temporary = archive.with_suffix('.zip.tmp')
     with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED) as zipped:
         for path in sorted(target.rglob('*')):
@@ -190,6 +238,7 @@ def build():
                     delay=2**(attempt+1);LOG.warning('Pull failed; retrying in %d s.', delay);time.sleep(delay)
         run(['docker','run','--rm','--platform',values['BACKROOMS_PLATFORM'],'--network','none',
              '--mount',f'type=bind,source={ROOT},target=/work','-w','/work',image,'make','-j4'])
+    verify_gpu_layout(ROOT/'BACKROOMS3D.elf')
     package(); verify()
     run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_project.py', '-v'])
 

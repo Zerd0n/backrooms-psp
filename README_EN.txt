@@ -1,4 +1,11 @@
-BACKROOMS PSP — REBUILT 2.0
+BACKROOMS PSP — REBUILT 2.0.1
+
+Display hotfix: GPU command buffers now occupy whole 64-byte cache lines.
+This prevents CPU cache writebacks from overwriting framebuffer setup.
+Real PSP confirmation is still needed for the reported wrong colors and
+double image. After installing, fully restart the game (no old save states).
+Keep settings.ini to preserve settings and the checkpoint. If the problem
+persists, send backrooms.log, the PSP model, firmware version and a screen photo.
 
 This version was rebuilt with GPT-6.0 Astra. It helped add a main menu,
 settings, camera bob, a checkpoint, map, pause screen, and other game
@@ -6,7 +13,7 @@ details. I tested the game in PPSSPP. FPS on a real PSP may differ because
 my console is broken and I could not test it there.
 
 RUN WITHOUT BUILDING
-1. Extract Backrooms-PSP-Rebuilt-v2.0.zip.
+1. Extract Backrooms-PSP-Rebuilt-v2.0.1.zip.
 2. In PPSSPP, use Load and open BACKROOMS3D/EBOOT.PBP.
 3. On a PSP that can run homebrew, copy the whole BACKROOMS3D folder to
    PSP/GAME on the memory stick. Start it from Game > Memory Stick.
@@ -57,4 +64,4 @@ In the repository, open README_EN.md for the full English documentation.
 Main command:
     python3 tools/project.py build
 Ready-to-copy game: dist/BACKROOMS3D.
-Archive: release/Backrooms-PSP-Rebuilt-v2.0.zip.
+Archive: release/Backrooms-PSP-Rebuilt-v2.0.1.zip.

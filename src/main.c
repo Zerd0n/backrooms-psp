@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-PSP_MODULE_INFO("Backrooms Rebuilt",0,2,0);
+PSP_MODULE_INFO("Backrooms Rebuilt",0,2,1);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
 PSP_HEAP_SIZE_KB(12*1024);
 static volatile int running=1,resumed=0;
